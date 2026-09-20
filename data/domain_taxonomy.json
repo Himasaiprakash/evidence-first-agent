@@ -1,0 +1,89 @@
+{
+  "AI_TECHNOLOGY": {
+    "name": "AI & Modern Computing Technologies",
+    "regex_patterns": [
+      "\\b(rag|retrieval|augmented|generation|llm|llms|agent|agents|ai|transformer|transformers|neural|embedding|embeddings|vector|reranking|cross-encoder|prompt|nlp|deep learning|machine learning|computer vision|reinforcement learning|backprop|backpropagation|convolutional|cnn|rnn|lstm|diffusion|serving|inference|pagedattention|vllm|kv[- ]?cache|roofline|tensor parallel|pipeline parallel|gpt|gpt-4o|claude|gemini|llama|mistral|deepseek|swe-bench|humaneval|bfcl|mmlu|frontier model|model comparison|foundation model|prompt caching)\\b"
+    ],
+    "anchor_terms": [
+      "language model", "llm", "transformer", "neural", "deep learning", "inference", "fine-tuning", "retrieval", "rag", "lora"
+    ],
+    "search_hints": [
+      "machine learning", "large language model", "neural network", "artificial intelligence"
+    ],
+    "ai_keywords": [
+      "ai", "llm", "language model", "gpt", "neural", "deep learning", "transformer", "prompt"
+    ]
+  },
+  "ENVIRONMENTAL_TOXICOLOGY": {
+    "name": "Environmental Toxicology, Ecotoxicology & Chemical Fate",
+    "regex_patterns": [
+      "\\b(biomagnif\\w*|bioaccumul\\w*|bioconcentrat\\w*|trophic|toxicolog\\w*|ecotoxicolog\\w*|pollut\\w*|pesticides?|ddt|dde|mercury|methylmercury|pcbs?|pfas|heavy metals?|food web|food chain|environmental fate|contaminants?|endocrine disrupt\\w*|pops?|persistent organic|microplastics?)\\b"
+    ],
+    "anchor_terms": [
+      "ecotoxicity", "contamination", "bioaccumulation", "exposure", "pollutant", "effluent", "pfas"
+    ],
+    "search_hints": [
+      "toxicology", "environmental", "ecology"
+    ]
+  },
+  "MEDICINE_BIOLOGY": {
+    "name": "Medicine & Biology",
+    "regex_patterns": [
+      "\\b(heart|cardiac|cardiovascular|anatomy|genes?|genetics|crispr|cas9|sgrna|off-target|base edit|prime edit|lnp|lipid nanoparticle|medical|diseases?|drugs?|clinical|biology|cancer|proteins?|brain|liver|organs?|pulmonary|valve|ventricle|pathology)\\b"
+    ],
+    "anchor_terms": [
+      "clinical", "trial", "efficacy", "patient", "therapy", "fda", "pharmacology", "drug", "receptor"
+    ],
+    "search_hints": [
+      "biology", "medicine", "cardiac", "physiology"
+    ]
+  },
+  "PHYSICAL_SCIENCE": {
+    "name": "Physical Sciences, Materials & Energy Storage",
+    "regex_patterns": [
+      "\\b(battery|batteries|solid-state|solid electrolyte|lithium metal|dendrite|ionic conductiv\\w*|llzo|lgps|argyrodite|quantum|physics|semiconductor|thermodynamics|optics|relativity|teleportation|entanglement|sun|solar|stars?|astronomy|astrophysics|cosmology|galaxy|planets?|gravity|nuclear fusion|fusion|photosphere|corona|plasma|heliosphere)\\b"
+    ],
+    "anchor_terms": [
+      "quantum", "semiconductor", "thermodynamics", "optics", "relativity", "lithium", "battery", "photosphere", "fusion"
+    ],
+    "search_hints": [
+      "physics", "chemistry", "quantum"
+    ]
+  },
+  "FINANCE_COMMERCE": {
+    "name": "Finance, Central Banking & Macro Plumbing",
+    "regex_patterns": [
+      "\\b(quantitative tightening|qt|balance sheet|soma|reverse repo|on rrp|sofr|iorb|repo market|treasury|tga|bank reserves|lclor|stocks?|markets?|revenue|crypto|finance|financial|economy|banking|valuation|earnings)\\b"
+    ],
+    "anchor_terms": [
+      "central bank", "monetary policy", "balance sheet", "interest rate", "treasury", "yield", "liquidity", "fomc", "fred", "reverse repurchase", "on rrp"
+    ],
+    "search_hints": [
+      "finance", "economics", "market"
+    ]
+  },
+  "SOFTWARE_ENGINEERING": {
+    "name": "Software Engineering & Infrastructure",
+    "regex_patterns": [
+      "\\b(database|databases|compiler|compilers|operating system|kubernetes|linux|webrtc|cache|caching|backend|school management|api|microservices|distributed systems)\\b"
+    ],
+    "anchor_terms": [
+      "software", "architecture", "database", "api", "microservices", "distributed systems", "compiler", "operating system"
+    ],
+    "search_hints": [
+      "software", "database", "computer science", "programming"
+    ]
+  },
+  "HISTORY_HUMANITIES": {
+    "name": "History & Humanities",
+    "regex_patterns": [
+      "\\b(roman|empire|wars?|history|historical|ancient|dynasty|revolution|centur(?:y|ies))\\b"
+    ],
+    "anchor_terms": [
+      "historical", "empire", "dynasty", "ancient", "revolution", "century", "historiography"
+    ],
+    "search_hints": [
+      "history", "humanities", "ancient history"
+    ]
+  }
+}

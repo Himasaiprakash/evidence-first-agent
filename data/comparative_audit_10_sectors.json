@@ -1,0 +1,301 @@
+[
+  {
+    "topic_id": "TOPIC-0001",
+    "sector": "Biomedicine, Genomics & Cell Therapeutics",
+    "title": "CRISPR-Cas9 ribonucleoprotein: Directional r-loop thermodynamic propagation and off-target mismatch kinetics, quantitative performance trade-offs, and empirical limits",
+    "elapsed_seconds": 4.7,
+    "workspace_id": "ws-c0362d32",
+    "sources_count": 8,
+    "claims_count": 30,
+    "report_chapters": 9,
+    "total_characters": 42663,
+    "agent_reported_quality": 97.6,
+    "audit_expert_score": 9.2,
+    "equations_verified": [
+      "\\Delta\\Delta G^\\circ",
+      "GUIDE-seq"
+    ],
+    "mechanisms_verified": [
+      "R-loop",
+      "seed region",
+      "PAM",
+      "HNH",
+      "RuvC",
+      "ApoE",
+      "LDLR",
+      "SORT"
+    ],
+    "standards_verified": [
+      "FDA CBER",
+      "EMA ATMP"
+    ],
+    "identified_lags": []
+  },
+  {
+    "topic_id": "TOPIC-0101",
+    "sector": "Materials Science, Solid-State Batteries & Energy Storage",
+    "title": "Lithium metal solid-state battery (LLZO garnet): Intergranular electronic leakage driving metallic lithium dendrite penetration, quantitative performance trade-offs, and empirical limits",
+    "elapsed_seconds": 37.4,
+    "workspace_id": "ws-90216688",
+    "sources_count": 10,
+    "claims_count": 30,
+    "report_chapters": 9,
+    "total_characters": 40352,
+    "agent_reported_quality": 97.5,
+    "audit_expert_score": 10.0,
+    "equations_verified": [
+      "\\sigma_i",
+      "G_{\\text{SE}} > 2 G_{\\text{Li}}",
+      "Butler-Volmer",
+      "\\text{ASR}"
+    ],
+    "mechanisms_verified": [
+      "Monroe-Newman",
+      "intergranular electronic leakage",
+      "stripping void",
+      "stack pressure"
+    ],
+    "standards_verified": [
+      "US DOE",
+      "USABC",
+      "UN 38.3"
+    ],
+    "identified_lags": []
+  },
+  {
+    "topic_id": "TOPIC-0201",
+    "sector": "Computer Systems, Distributed AI & GPU Serving Infrastructure",
+    "title": "Large Language Model serving engine (vLLM): Virtual memory paging and physical block table mapping eliminating kv fragmentation, quantitative performance trade-offs, and empirical limits",
+    "elapsed_seconds": 46.8,
+    "workspace_id": "ws-c3c29a6d",
+    "sources_count": 15,
+    "claims_count": 26,
+    "report_chapters": 9,
+    "total_characters": 37766,
+    "agent_reported_quality": 97.3,
+    "audit_expert_score": 8.3,
+    "equations_verified": [
+      "\\text{Memory}_{\\text{KV}}",
+      "PagedAttention"
+    ],
+    "mechanisms_verified": [
+      "Roofline model",
+      "GEMM",
+      "GEMV",
+      "NVLink"
+    ],
+    "standards_verified": [
+      "MLPerf",
+      "TTFT",
+      "ITL"
+    ],
+    "identified_lags": []
+  },
+  {
+    "topic_id": "TOPIC-0301",
+    "sector": "Ecotoxicology, Chemical Fate & Global Pollutants",
+    "title": "Per- and polyfluoroalkyl substances (PFAS / PFOA / PFOS): Plasma albumin binding and enterohepatic reabsorption overriding lipid partitioning, quantitative performance trade-offs, and empirical limits",
+    "elapsed_seconds": 48.7,
+    "workspace_id": "ws-ae1fae47",
+    "sources_count": 8,
+    "claims_count": 30,
+    "report_chapters": 9,
+    "total_characters": 65889,
+    "agent_reported_quality": 97.5,
+    "audit_expert_score": 10.0,
+    "equations_verified": [
+      "\\text{TMF} = 10^b",
+      "\\text{BMF}",
+      "\\log K_{ow}"
+    ],
+    "mechanisms_verified": [
+      "plasma albumin binding",
+      "enterohepatic reabsorption",
+      "fugacity amplification",
+      "trophic transfer"
+    ],
+    "standards_verified": [
+      "Stockholm Convention",
+      "EPA Clean Water Act"
+    ],
+    "identified_lags": []
+  },
+  {
+    "topic_id": "TOPIC-0401",
+    "sector": "Quantitative Finance, Central Banking & Macro Plumbing",
+    "title": "Federal Reserve balance sheet Quantitative Tightening (QT): Passive maturity runoff reducing central bank assets without direct market sales, quantitative performance trade-offs, and empirical limits",
+    "elapsed_seconds": 48.2,
+    "workspace_id": "ws-cb35ec4b",
+    "sources_count": 8,
+    "claims_count": 30,
+    "report_chapters": 9,
+    "total_characters": 47277,
+    "agent_reported_quality": 97.6,
+    "audit_expert_score": 10.0,
+    "equations_verified": [
+      "\\Delta\\text{SOMA}",
+      "\\Delta\\text{Reserves}",
+      "\\Delta\\text{ON RRP}",
+      "\\Delta\\text{TGA}"
+    ],
+    "mechanisms_verified": [
+      "balance sheet runoff",
+      "MMF yield substitution",
+      "LCLoR floor",
+      "SOFR-IORB spread"
+    ],
+    "standards_verified": [
+      "Federal Reserve Act",
+      "Basel III SLR",
+      "Dodd-Frank"
+    ],
+    "identified_lags": []
+  },
+  {
+    "topic_id": "TOPIC-0501",
+    "sector": "Foundational AI, Alignment & Cognitive Architectures",
+    "title": "Reinforcement Learning from Human Feedback (RLHF / PPO): Reward model reward hacking, policy drift, and kl-divergence penalty regularization, quantitative performance trade-offs, and empirical limits",
+    "elapsed_seconds": 47.1,
+    "workspace_id": "ws-f2c3d2c4",
+    "sources_count": 14,
+    "claims_count": 29,
+    "report_chapters": 9,
+    "total_characters": 36748,
+    "agent_reported_quality": 95.0,
+    "audit_expert_score": 10.0,
+    "equations_verified": [
+      "D_{\\text{KL}}(\\pi_\\theta \\parallel \\pi_{\\text{ref}})",
+      "r_\\psi(x, y)",
+      "PPO clip"
+    ],
+    "mechanisms_verified": [
+      "reward hacking",
+      "policy drift",
+      "KL penalty",
+      "implicit reward",
+      "sparse autoencoder"
+    ],
+    "standards_verified": [
+      "NIST AI RMF",
+      "EU AI Act"
+    ],
+    "identified_lags": []
+  },
+  {
+    "topic_id": "TOPIC-0601",
+    "sector": "Aerospace, Autonomous Robotics & Hypersonic Systems",
+    "title": "Hypersonic glide vehicle (Mach 5+): Boundary layer laminar-turbulent transition and aerothermodynamic shock-wave heating, quantitative performance trade-offs, and empirical limits",
+    "elapsed_seconds": 48.1,
+    "workspace_id": "ws-21433bca",
+    "sources_count": 9,
+    "claims_count": 30,
+    "report_chapters": 9,
+    "total_characters": 31998,
+    "agent_reported_quality": 95.0,
+    "audit_expert_score": 10.0,
+    "equations_verified": [
+      "q = \\rho_\\infty^N v_\\infty^M",
+      "Re_x",
+      "L/D"
+    ],
+    "mechanisms_verified": [
+      "hypersonic shock layer",
+      "boundary layer transition",
+      "aerothermodynamic heating",
+      "ZMP control"
+    ],
+    "standards_verified": [
+      "FAA Part 25",
+      "NASA SP-8000"
+    ],
+    "identified_lags": []
+  },
+  {
+    "topic_id": "TOPIC-0701",
+    "sector": "Sustainable Infrastructure, Clean Catalysis & Smart Grids",
+    "title": "Direct Air Capture (DAC) solid sorbent system: Moisture-swing temperature-vacuum desorption and amine sorbent oxidative degradation, quantitative performance trade-offs, and empirical limits",
+    "elapsed_seconds": 48.8,
+    "workspace_id": "ws-cf966930",
+    "sources_count": 8,
+    "claims_count": 30,
+    "report_chapters": 9,
+    "total_characters": 31753,
+    "agent_reported_quality": 95.0,
+    "audit_expert_score": 10.0,
+    "equations_verified": [
+      "\\text{GJ/ton }\\text{CO}_2",
+      "w/b < 0.20",
+      "RoCoF"
+    ],
+    "mechanisms_verified": [
+      "moisture-swing desorption",
+      "amine degradation",
+      "capillary pore elimination",
+      "synthetic inertia"
+    ],
+    "standards_verified": [
+      "ASCE 7-22",
+      "IEEE 1547"
+    ],
+    "identified_lags": []
+  },
+  {
+    "topic_id": "TOPIC-0801",
+    "sector": "Quantum Information, Superconducting Qubits & Photonics",
+    "title": "Superconducting transmon qubit processor: Two-level system (tls) dielectric loss and quasiparticle poisoning decoherence, quantitative performance trade-offs, and empirical limits",
+    "elapsed_seconds": 47.6,
+    "workspace_id": "ws-db61ade5",
+    "sources_count": 8,
+    "claims_count": 30,
+    "report_chapters": 9,
+    "total_characters": 32269,
+    "agent_reported_quality": 97.7,
+    "audit_expert_score": 10.0,
+    "equations_verified": [
+      "T_1",
+      "T_2",
+      "F_{\\text{gate}} > 99.5\\%"
+    ],
+    "mechanisms_verified": [
+      "two-level systems TLS",
+      "quasiparticle poisoning",
+      "surface code",
+      "Majorana zero mode"
+    ],
+    "standards_verified": [
+      "NIST Quantum Benchmarks",
+      "IEEE P7130"
+    ],
+    "identified_lags": []
+  },
+  {
+    "topic_id": "TOPIC-0901",
+    "sector": "Cybersecurity, Post-Quantum Cryptography & Kernel Systems",
+    "title": "Post-Quantum Cryptography (ML-KEM / Kyber): Module learning with errors (m-lwe) lattice hardness and ntt polynomial multiplication, quantitative performance trade-offs, and empirical limits",
+    "elapsed_seconds": 49.1,
+    "workspace_id": "ws-4f6f6c3f",
+    "sources_count": 9,
+    "claims_count": 30,
+    "report_chapters": 9,
+    "total_characters": 32304,
+    "agent_reported_quality": 95.0,
+    "audit_expert_score": 10.0,
+    "equations_verified": [
+      "\\text{M-LWE}",
+      "\\mathbb{Z}_q[X]/(X^n + 1)",
+      "NTT"
+    ],
+    "mechanisms_verified": [
+      "lattice hardness",
+      "Fiat-Shamir with aborts",
+      "zk-SNARK arithmetization",
+      "eBPF verifier"
+    ],
+    "standards_verified": [
+      "NIST FIPS 203",
+      "NIST FIPS 204",
+      "RFC 6480"
+    ],
+    "identified_lags": []
+  }
+]

@@ -1,0 +1,11 @@
+.env
+.env.local
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+scratch/
+data/workspaces/*.json
+.vscode/
+.idea/
