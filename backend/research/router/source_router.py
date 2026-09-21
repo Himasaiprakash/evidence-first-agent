@@ -169,7 +169,7 @@ class UniversalSourceRouter:
             # 2. DOMAIN-SPECIFIC SPECIALIZED INGESTION TIERS (Requirement-Driven)
             # =================================================================
             if domain == DomainType.AI_TECHNOLOGY:
-                f = executor.submit(self.academic.search_arxiv, short_query, domain, 8)
+                f = executor.submit(self.academic.search_arxiv, short_query, 8)
                 task_meta[f] = (short_query, "ArXiv API", "AI Preprints")
                 f = executor.submit(self.tech.search_huggingface_hub, short_query, 6)
                 task_meta[f] = (short_query, "HuggingFace Hub API", "Model Hub")

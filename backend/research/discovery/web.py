@@ -185,7 +185,7 @@ class WebDiscovery:
                                         credibility_score=65.0,
                                         authority_score=SOURCE_CLASS_WEIGHTS[SourceClass.WIKIPEDIA] * 100.0,
                                         primary_status=False,
-                                        raw_content=extract[:3500],
+                                        raw_content=extract[:15000],
                                         retrieval_timestamp=datetime.now().isoformat()
                                     ))
             except Exception:
@@ -219,7 +219,7 @@ class WebDiscovery:
                 snippets = re.findall(r'<td class=[\'"]result-snippet[\'"]>([\s\S]*?)</td>', html)
 
                 parsed_items = []
-                for idx in range(min(max_results, len(titles))):
+                for idx in range(min(max_results + 4, len(titles))):
                     raw_url = titles[idx][0]
                     title = re.sub(r"<[^>]+>", "", titles[idx][1]).strip()
                     snippet = re.sub(r"<[^>]+>", "", snippets[idx]).strip() if idx < len(snippets) else ""
@@ -235,7 +235,13 @@ class WebDiscovery:
                             actual_url = urllib.parse.unquote(m.group(1))
 
                     if actual_url.startswith("http"):
-                        parsed_items.append((idx, title, snippet, actual_url))
+                        u_low = actual_url.lower()
+                        # Skip consumer login portals that contain no API specs or pricing tables
+                        if any(auth_gate in u_low for auth_gate in ["chatgpt.com", "claude.ai", "gemini.google.com", "chat.openai.com"]):
+                            continue
+                        parsed_items.append((len(parsed_items), title, snippet, actual_url))
+                        if len(parsed_items) >= max_results:
+                            break
 
                 if parsed_items:
                     import concurrent.futures

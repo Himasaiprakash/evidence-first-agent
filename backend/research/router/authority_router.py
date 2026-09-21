@@ -57,6 +57,31 @@ class PrimaryAuthorityRouter:
             clean_name = re.sub(r'^(OpenAI|Anthropic|Google|Meta|Microsoft|Alibaba)\s+', '', entity.canonical_name, flags=re.IGNORECASE)
             dims_text = " ".join(resolution.requested_dimensions[:3]) if resolution.requested_dimensions else "official documentation specifications"
 
+            # Direct Ingestion of Official Documentation URLs resolved in Phase 0
+            for doc_url in entity.documentation_urls:
+                if doc_url.startswith("http"):
+                    try:
+                        doc_text = self.web.fetch_web_page(doc_url)
+                        if doc_text and len(doc_text) > 300:
+                            doc_domain = urllib.parse.urlparse(doc_url).netloc.lower().replace("www.", "")
+                            sources.append(Source(
+                                id=f"src-doc-{re.sub(r'[^a-zA-Z0-9]', '_', doc_domain)[:16]}",
+                                title=f"Official Specification: {entity.canonical_name} ({doc_domain})",
+                                url=doc_url,
+                                source_type=SourceType.DOCUMENTATION,
+                                category=SourceCategory.PRIMARY,
+                                source_class=SourceClass.OFFICIAL_DOCUMENTATION,
+                                author_publisher=entity.governing_authority or doc_domain,
+                                publication_date=datetime.now().strftime("%Y-%m-%d"),
+                                credibility_score=99.0,
+                                authority_score=95.0,
+                                primary_status=True,
+                                raw_content=doc_text[:12000],
+                                retrieval_timestamp=datetime.now().isoformat()
+                            ))
+                    except Exception as e:
+                        print(f"  [PRIMARY DOC FETCH WARNING] Failed to fetch {doc_url}: {e}")
+
             # 1. Primary Vendor Domain Direct Query (Strict site: prefix for 100% primary authority yield)
             for prim_domain in entity.primary_authority_domains[:2]:
                 if prim_domain:
@@ -97,11 +122,13 @@ class PrimaryAuthorityRouter:
                 queries.append(("Fine-Tuning or Retrieval? Comparing Large Language Model Knowledge Injection", "arxiv.org", "RAG vs FT Comparative Paper"))
                 queries.append(("LoRA Low-Rank Adaptation of Large Language Models Hu", "arxiv.org", "LoRA Seminal Paper"))
             else:
+                queries.append(("https://openai.com/api/pricing", "openai.com", "OpenAI Pricing Page"))
+                queries.append(("https://www.anthropic.com/pricing", "anthropic.com", "Anthropic Pricing Page"))
+                queries.append(("https://ai.google.dev/pricing", "ai.google.dev", "Google AI Pricing Page"))
+                queries.append(("GPT-4o Claude 3.5 Sonnet Gemini 1.5 Pro API pricing per 1M input output tokens", "", "AI Model Pricing Specs"))
+                queries.append(("GPT-4o Claude 3.5 Sonnet Gemini 1.5 Pro context window size tokens MMLU GPQA SWE-bench", "", "AI Model Technical Specs"))
                 queries.append(("site:swebench.com SWE-bench Verified coding benchmark results", "swebench.com", "SWE-bench"))
                 queries.append(("site:lmarena.ai LMSYS Chatbot Arena Leaderboard results", "lmarena.ai", "LMSYS Arena"))
-                queries.append(("site:openai.com/api/pricing GPT-4o GPT-4o-mini o1 pricing context", "openai.com", "OpenAI Official Pricing"))
-                queries.append(("site:anthropic.com/pricing Claude 3.5 Sonnet Haiku pricing context", "anthropic.com", "Anthropic Official Pricing"))
-                queries.append(("site:ai.google.dev/pricing Gemini 1.5 Pro Flash pricing context", "ai.google.dev", "Google AI Official Pricing"))
         elif domain in [DomainType.MEDICINE_BIOLOGY, DomainType.ENVIRONMENTAL_TOXICOLOGY]:
             queries.append((f"site:clinicaltrials.gov {resolution.query[:40]}", "clinicaltrials.gov", "ClinicalTrials"))
             queries.append((f"site:fda.gov {resolution.query[:40]}", "fda.gov", "FDA"))
@@ -111,12 +138,15 @@ class PrimaryAuthorityRouter:
         elif domain == DomainType.SOFTWARE_ENGINEERING:
             queries.append((f"site:github.com {resolution.query[:40]} benchmark latency", "github.com", "GitHub"))
 
-        # Concurrently execute targeted searches (max 8 queries)
+        # Concurrently execute targeted searches (max 10 queries)
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
             future_to_q = {}
-            for q in queries[:8]:
+            for q in queries[:10]:
                 q_str, domain_target, target_name = q
-                if domain_target == "arxiv.org":
+                if q_str.startswith("http"):
+                    f = executor.submit(self.web.fetch_web_page, q_str)
+                    future_to_q[f] = (q_str, "Direct URL Crawl", target_name)
+                elif domain_target == "arxiv.org":
                     f = executor.submit(self.academic.search_arxiv, q_str, 2)
                     future_to_q[f] = (q_str, "ArXiv API", target_name)
                 else:
@@ -127,10 +157,30 @@ class PrimaryAuthorityRouter:
                 yield_count = 0
                 try:
                     res = future.result()
-                    if res and isinstance(res, list):
+                    if res and isinstance(res, str) and len(res) > 300:
+                        doc_url = q_tuple[0]
+                        doc_domain = urllib.parse.urlparse(doc_url).netloc.lower().replace("www.", "")
+                        s = Source(
+                            id=f"src-doc-{re.sub(r'[^a-zA-Z0-9]', '_', doc_domain)[:16]}-{hash(doc_url)%1000}",
+                            title=f"Official Pricing & Specs: {q_tuple[2]} ({doc_domain})",
+                            url=doc_url,
+                            source_type=SourceType.DOCUMENTATION,
+                            category=SourceCategory.PRIMARY,
+                            source_class=SourceClass.OFFICIAL_DOCUMENTATION,
+                            author_publisher=doc_domain,
+                            publication_date=datetime.now().strftime("%Y-%m-%d"),
+                            credibility_score=99.0,
+                            authority_score=95.0,
+                            primary_status=True,
+                            raw_content=res[:12000],
+                            retrieval_timestamp=datetime.now().isoformat()
+                        )
+                        sources.append(s)
+                        yield_count += 1
+                    elif res and isinstance(res, list):
                         for s in res:
                             s.retrieval_query = q_tuple[0]
-                            s.discovery_engine = "DuckDuckGo Lite"
+                            s.discovery_engine = q_tuple[1]
                             s.phase = "Phase 1: Authority Harvest"
                             # Classify and tag source authority
                             classified_source = self._classify_and_tag_source(s, resolution.entities)
@@ -149,13 +199,21 @@ class PrimaryAuthorityRouter:
                     "timestamp": datetime.now().isoformat()
                 })
 
-        # Deduplicate sources by URL
+        # Deduplicate sources by URL and deep-crawl primary authority pages
         seen_urls = set()
         deduped = []
         for s in sources:
             clean_u = s.url.split("?")[0].rstrip("/")
             if clean_u not in seen_urls:
                 seen_urls.add(clean_u)
+                # Deep crawl primary vendor/academic pages if raw_content is concise snippet (< 1000 chars)
+                if (s.primary_status or s.authority_score >= 75.0) and len(s.raw_content or "") < 1000:
+                    try:
+                        full_txt = self.web.fetch_web_page(s.url)
+                        if full_txt and len(full_txt) > len(s.raw_content or ""):
+                            s.raw_content = full_txt[:12000]
+                    except Exception as err:
+                        print(f"  [DEEP CRAWL WARNING] Failed to fetch {s.url}: {err}")
                 deduped.append(s)
 
         return deduped, executed_queries
