@@ -13,9 +13,11 @@ from backend.research.discovery.academic_universal import AcademicUniversalDisco
 
 # Known Tier-3 aggregator and blog domains that are forbidden from verifying quantitative numbers
 TIER_3_AGGREGATOR_PATTERNS = [
-    "benchlm.ai", "llm-stats.com", "platform.teamai.com", "edstellar.com",
-    "aimodelbenchmarks.com", "medium.com", "towardsdatascience.com", "forbes.com",
+    "finout.io", "g2.com", "baeseokj", "benchlm.ai", "llm-stats.com", "platform.teamai.com",
+    "edstellar.com", "aimodelbenchmarks.com", "medium.com", "towardsdatascience.com", "forbes.com",
     "analyticsvidhya.com", "geeksforgeeks.org", "simplilearn.com", "techtarget.com",
+    "spiceworks.com", "datacamp.com", "coursera.org", "pecollective.com", "claudefa.st",
+    "typingmind.com", "railwail.com", "openrouter.ai", "autobench.org", "klu.ai", "promptlayer.com",
     "dpboss", "satta", "matka", "kalyan", "lottery", "casino", "gambling", "betting"
 ]
 
@@ -29,7 +31,7 @@ class AuthorityClassification(BaseModel):
 class PrimaryAuthorityRouter:
     """
     Phase 1: Universal Authority-Tiered Evidence Harvester (All Domains)
-    - Directly routes targeted queries to verified primary authority domains
+    - Directly routes targeted queries to verified primary authority domains using site: domain scoping
     - Replaces broad aggregator queries with primary documentation search
     - Automatically classifies evidence into Tier 1 (Primary), Tier 2 (Academic), and Tier 3 (Aggregator)
     - Rejects or quarantines Tier 3 aggregators for quantitative assertions
@@ -55,18 +57,16 @@ class PrimaryAuthorityRouter:
             clean_name = re.sub(r'^(OpenAI|Anthropic|Google|Meta|Microsoft|Alibaba)\s+', '', entity.canonical_name, flags=re.IGNORECASE)
             dims_text = " ".join(resolution.requested_dimensions[:3]) if resolution.requested_dimensions else "official documentation specifications"
 
-            # 1. LIVE Primary Technical Specifications & Pricing Query (Executes FIRST with 2026 Freshness)
+            # 1. Primary Vendor Domain Direct Query (Strict site: prefix for 100% primary authority yield)
+            for prim_domain in entity.primary_authority_domains[:2]:
+                if prim_domain:
+                    queries.append((f"site:{prim_domain} {clean_name} API pricing documentation specifications", prim_domain, entity.canonical_name))
+
+            # 2. General Primary Technical Specifications & Pricing Query
             if domain in [DomainType.AI_TECHNOLOGY, DomainType.SOFTWARE_ENGINEERING]:
-                queries.append((f"{entity.canonical_name} official API pricing benchmarks performance 2026", "", entity.canonical_name))
-                queries.append((f"{clean_name} {dims_text} benchmarks pricing 2026", "", entity.canonical_name))
+                queries.append((f"{entity.canonical_name} official API pricing benchmarks 2026", "", entity.canonical_name))
             else:
                 queries.append((f"{entity.canonical_name} official specifications 2026", "", entity.canonical_name))
-                queries.append((f"{clean_name} {dims_text}", "", entity.canonical_name))
-
-            # 2. Primary Vendor Domain Direct Query (No restrictive site: prefix for clean search engine results)
-            for prim_domain in entity.primary_authority_domains[:1]:
-                if prim_domain:
-                    queries.append((f"{prim_domain} {clean_name} API docs pricing 2026", prim_domain, entity.canonical_name))
 
             # 3. Authoritative Encyclopedic Overview (Executed SECONDARY as tertiary background)
             wiki_sources = self.web.search_wikipedia_multi(clean_name, domain)
@@ -89,7 +89,7 @@ class PrimaryAuthorityRouter:
                 "timestamp": datetime.now().isoformat()
             })
 
-        # 4. Benchmark / Independent Primary Registry Queries
+        # 4. Domain-Specific Independent Primary Registry Queries
         if domain == DomainType.AI_TECHNOLOGY:
             q_low = resolution.query.lower()
             if any(k in q_low for k in ["rag", "retrieval", "fine-tuning", "finetuning", "lora"]):
@@ -97,12 +97,16 @@ class PrimaryAuthorityRouter:
                 queries.append(("Fine-Tuning or Retrieval? Comparing Large Language Model Knowledge Injection", "arxiv.org", "RAG vs FT Comparative Paper"))
                 queries.append(("LoRA Low-Rank Adaptation of Large Language Models Hu", "arxiv.org", "LoRA Seminal Paper"))
             else:
-                queries.append(("SWE-bench Verified coding benchmark results", "swebench.com", "SWE-bench"))
-                queries.append(("Berkeley Function Calling Leaderboard BFCL results", "berkeley.edu", "BFCL"))
+                queries.append(("site:swebench.com SWE-bench Verified coding benchmark results", "swebench.com", "SWE-bench"))
+                queries.append(("site:lmarena.ai LMSYS Chatbot Arena Leaderboard results", "lmarena.ai", "LMSYS Arena"))
+                queries.append(("site:openai.com/api/pricing GPT-4o GPT-4o-mini o1 pricing context", "openai.com", "OpenAI Official Pricing"))
+                queries.append(("site:anthropic.com/pricing Claude 3.5 Sonnet Haiku pricing context", "anthropic.com", "Anthropic Official Pricing"))
+                queries.append(("site:ai.google.dev/pricing Gemini 1.5 Pro Flash pricing context", "ai.google.dev", "Google AI Official Pricing"))
         elif domain in [DomainType.MEDICINE_BIOLOGY, DomainType.ENVIRONMENTAL_TOXICOLOGY]:
             queries.append((f"site:clinicaltrials.gov {resolution.query[:40]}", "clinicaltrials.gov", "ClinicalTrials"))
             queries.append((f"site:fda.gov {resolution.query[:40]}", "fda.gov", "FDA"))
         elif domain == DomainType.FINANCE_COMMERCE:
+            queries.append((f"site:sec.gov {resolution.query[:40]} 10-K 10-Q filing", "sec.gov", "SEC EDGAR"))
             queries.append((f"site:federalreserve.gov {resolution.query[:40]}", "federalreserve.gov", "FederalReserve"))
         elif domain == DomainType.SOFTWARE_ENGINEERING:
             queries.append((f"site:github.com {resolution.query[:40]} benchmark latency", "github.com", "GitHub"))

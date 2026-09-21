@@ -32,7 +32,9 @@ class WebDiscovery:
         if any(t in domain for t in [
             "geeksforgeeks.org", "tutorialspoint.com", "javatpoint.com", "simplilearn.com",
             "w3schools.com", "towardsdatascience.com", "analyticsvidhya.com", "baeldung.com",
-            "freecodecamp.org", "guru99.com"
+            "freecodecamp.org", "guru99.com", "finout.io", "g2.com", "baeseokj",
+            "pecollective.com", "claudefa.st", "typingmind.com", "railwail.com",
+            "openrouter.ai", "autobench.org", "klu.ai", "promptlayer.com"
         ]):
             return SourceClass.BLOG, SOURCE_CLASS_WEIGHTS[SourceClass.BLOG] * 100.0, SourceCategory.COMMUNITY, False
         if any(b in domain for b in ["medium.com", "blogspot.com", "wordpress.com", "substack.com"]):
