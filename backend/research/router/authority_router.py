@@ -1,4 +1,5 @@
 import re
+import json
 import urllib.parse
 import urllib.request
 import concurrent.futures
@@ -94,7 +95,8 @@ class PrimaryAuthorityRouter:
                 queries.append((f"{entity.canonical_name} official specifications 2026", "", entity.canonical_name))
 
             # 3. Authoritative Encyclopedic Overview (Executed SECONDARY as tertiary background)
-            wiki_sources = self.web.search_wikipedia_multi(clean_name, domain)
+            wiki_topic = f"{clean_name} (language model)" if domain in [DomainType.AI_TECHNOLOGY, DomainType.SOFTWARE_ENGINEERING] else clean_name
+            wiki_sources = self.web.search_wikipedia_multi(wiki_topic, domain)
             wiki_yield = 0
             for ws in wiki_sources[:2]:
                 ws.retrieval_query = clean_name
@@ -116,27 +118,78 @@ class PrimaryAuthorityRouter:
 
         # 4. Domain-Specific Independent Primary Registry Queries
         if domain == DomainType.AI_TECHNOLOGY:
+            # Direct Ingestion of Official Live Model Pricing & Tariff Registry (OpenRouter Primary Registry)
+            try:
+                openrouter_url = "https://openrouter.ai/api/v1/models"
+                req = urllib.request.Request(openrouter_url, headers={"User-Agent": "EvidenceResearchBot/2.0"})
+                with urllib.request.urlopen(req, timeout=5) as r:
+                    data = json.loads(r.read().decode("utf-8"))
+                    models = data.get("data", [])
+                    matched_specs = []
+                    seen_m_ids = set()
+                    for e in resolution.entities:
+                        c_name_low = e.canonical_name.lower()
+                        gov_auth_low = e.governing_authority.lower() if e.governing_authority else ""
+                        dom_tokens = [d.split('.')[0] for d in e.primary_authority_domains if d]
+                        
+                        # Extract search tokens dynamically from entity canonical name, authority, and primary domains
+                        search_tokens = set(re.findall(r'\b[a-zA-Z0-9]{3,}\b', f"{c_name_low} {gov_auth_low} {' '.join(dom_tokens)}")) - {"series", "model", "models", "the", "inc", "corp", "com", "org", "official"}
+                        
+                        # Sort models dynamically by context length (highest context / non-batch models first)
+                        sorted_v_models = sorted(models, key=lambda x: x.get("context_length", 0), reverse=True)
+
+                        entity_matches = 0
+                        for m in sorted_v_models:
+                            m_id = m.get("id", "").lower()
+                            m_name = m.get("name", "").lower()
+
+                            # Skip batch/free preview noise
+                            if ":batch" in m_id or ":free" in m_id:
+                                continue
+
+                            # Dynamic match: does m_id or m_name contain any of the entity's search tokens?
+                            if search_tokens and any(tok in m_id or tok in m_name for tok in search_tokens):
+                                if m_id not in seen_m_ids:
+                                    seen_m_ids.add(m_id)
+                                    p = m.get("pricing", {})
+                                    p_in = float(p.get("prompt", 0)) * 1000000
+                                    p_out = float(p.get("completion", 0)) * 1000000
+                                    ctx = m.get("context_length", 0)
+                                    matched_specs.append(f"- Canonical Entity: {e.canonical_name} (Official Model Variant: {m.get('name')}, ID: {m.get('id')})\n  Context Window: {ctx:,} tokens\n  Input Token Pricing: ${p_in:.2f} per 1M tokens\n  Output Token Pricing: ${p_out:.2f} per 1M tokens")
+                                    entity_matches += 1
+                                    if entity_matches >= 5:
+                                        break
+
+                    if matched_specs:
+                        spec_text = "Official API Model Pricing & Context Window Tariff Registry (OpenRouter Live Primary Registry):\n\n" + "\n\n".join(matched_specs[:20])
+                        sources.append(Source(
+                            id="src-doc-openrouter-registry",
+                            title="Official API Model Pricing & Context Window Tariff Registry (openrouter.ai)",
+                            url="https://openrouter.ai/models",
+                            source_type=SourceType.DOCUMENTATION,
+                            category=SourceCategory.PRIMARY,
+                            source_class=SourceClass.OFFICIAL_DOCUMENTATION,
+                            author_publisher="OpenRouter Technical Model Registry",
+                            publication_date=datetime.now().strftime("%Y-%m-%d"),
+                            credibility_score=99.0,
+                            authority_score=95.0,
+                            primary_status=True,
+                            raw_content=spec_text,
+                            retrieval_timestamp=datetime.now().isoformat()
+                        ))
+            except Exception as e:
+                print(f"  [OPENROUTER REGISTRY FETCH WARNING] {e}")
+
+            # 4. Universal Dynamic Primary Authority Scoping
+            # Uses primary authority domains resolved dynamically in Phase 0 for each entity
+            names_str = " ".join([e.canonical_name for e in resolution.entities]) if resolution.entities else resolution.query[:40]
+            dims_str = " ".join(resolution.requested_dimensions[:3]) if resolution.requested_dimensions else "specifications"
+            queries.append((f"{names_str} {dims_str} official documentation benchmarks 2026", "", names_str))
+            
+            # Dynamic academic paper routing if query or dimensions mention research
             q_low = resolution.query.lower()
-            if any(k in q_low for k in ["rag", "retrieval", "fine-tuning", "finetuning", "lora"]):
-                queries.append(("Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks Lewis", "arxiv.org", "RAG Seminal Paper"))
-                queries.append(("Fine-Tuning or Retrieval? Comparing Large Language Model Knowledge Injection", "arxiv.org", "RAG vs FT Comparative Paper"))
-                queries.append(("LoRA Low-Rank Adaptation of Large Language Models Hu", "arxiv.org", "LoRA Seminal Paper"))
-            else:
-                queries.append(("https://openai.com/api/pricing", "openai.com", "OpenAI Pricing Page"))
-                queries.append(("https://www.anthropic.com/pricing", "anthropic.com", "Anthropic Pricing Page"))
-                queries.append(("https://ai.google.dev/pricing", "ai.google.dev", "Google AI Pricing Page"))
-                queries.append(("GPT-4o Claude 3.5 Sonnet Gemini 1.5 Pro API pricing per 1M input output tokens", "", "AI Model Pricing Specs"))
-                queries.append(("GPT-4o Claude 3.5 Sonnet Gemini 1.5 Pro context window size tokens MMLU GPQA SWE-bench", "", "AI Model Technical Specs"))
-                queries.append(("site:swebench.com SWE-bench Verified coding benchmark results", "swebench.com", "SWE-bench"))
-                queries.append(("site:lmarena.ai LMSYS Chatbot Arena Leaderboard results", "lmarena.ai", "LMSYS Arena"))
-        elif domain in [DomainType.MEDICINE_BIOLOGY, DomainType.ENVIRONMENTAL_TOXICOLOGY]:
-            queries.append((f"site:clinicaltrials.gov {resolution.query[:40]}", "clinicaltrials.gov", "ClinicalTrials"))
-            queries.append((f"site:fda.gov {resolution.query[:40]}", "fda.gov", "FDA"))
-        elif domain == DomainType.FINANCE_COMMERCE:
-            queries.append((f"site:sec.gov {resolution.query[:40]} 10-K 10-Q filing", "sec.gov", "SEC EDGAR"))
-            queries.append((f"site:federalreserve.gov {resolution.query[:40]}", "federalreserve.gov", "FederalReserve"))
-        elif domain == DomainType.SOFTWARE_ENGINEERING:
-            queries.append((f"site:github.com {resolution.query[:40]} benchmark latency", "github.com", "GitHub"))
+            if any(k in q_low for k in ["paper", "study", "rag", "retrieval", "fine-tuning", "lora", "benchmark", "accuracy"]):
+                queries.append((f"{names_str} {resolution.query[:50]} technical paper", "arxiv.org", "ArXiv Primary Research"))
 
         # Concurrently execute targeted searches (max 10 queries)
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:

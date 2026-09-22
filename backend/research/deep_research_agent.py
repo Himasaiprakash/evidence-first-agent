@@ -281,6 +281,8 @@ class DeepResearchAgent:
         def quant_chunk_priority(chk):
             txt = chk.text.lower()
             score = 0
+            if "openrouter" in chk.source_id.lower() or "src-doc-" in chk.source_id.lower():
+                score += 10
             if any(k in txt for k in ["$", "€", "¥", "£", "/m", "token", "pricing", "cost", "margin", "billion", "trillion"]):
                 score += 3
             if any(k in txt for k in ["%", "score", "bench", "accuracy", "leaderboard", "ratio", "rate", "trial", "endpoint"]):
@@ -290,10 +292,10 @@ class DeepResearchAgent:
             return score
 
         sorted_prompt_chunks = sorted(chunks, key=quant_chunk_priority, reverse=True)
-        evidence_texts = [f"[{c.source_id}] {c.text[:650]}" for c in sorted_prompt_chunks[:16]]
+        evidence_texts = [f"[{c.source_id}] {c.text[:1200]}" for c in sorted_prompt_chunks[:25]]
         evidence_block = "\n\n".join(evidence_texts) if evidence_texts else "Empirical observations documented in primary sources."
 
-        claims_texts = [f"- {claim_text(c)} [{c.evidence.source_id}]" for c in accepted_claims[:16]]
+        claims_texts = [f"- {claim_text(c)} [{c.evidence.source_id}]" for c in accepted_claims[:20]]
         claims_block = "\n".join(claims_texts) if claims_texts else "Verified empirical assertions documented across authoritative sources."
 
         system_prompt = (
@@ -301,11 +303,11 @@ class DeepResearchAgent:
             "You author exhaustive, deeply technical, publication-grade research monographs in structured Markdown. "
             "You cover EVERY chapter in the requested outline thoroughly and authoritatively. "
             "STRICT GROUNDING & DISCLOSURE DIRECTIVE:\n"
-            "- For proprietary closed models (e.g., GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Pro), if exact architectural parameters (such as parameter counts, layer counts, or quantization formats) are not officially disclosed by the vendor in retrieved primary evidence, state 'Architectural details not publicly disclosed by vendor'. Do NOT invent parameter numbers or quantization formats.\n"
-            "- ENTITY LINEUP IMMUTABILITY: Only compare the canonical entities explicitly requested in the query. NEVER introduce claims about unrequested legacy or speculative model versions (e.g. GPT-4, GPT-4 Turbo, Claude 3, GPT-6 Astra).\n"
-            "- MISSING BENCHMARK STANDARDS: If benchmark metrics (e.g., GDPVal, MCP-Atlas, Frontier-Bench, CursorBench, OSWorld 2.0) are not present in retrieved evidence for any dimension, state explicitly 'COMPARISON = UNDETERMINED'. Do NOT guess values or recommendations.\n"
-            "- Do NOT invent enterprise case studies or company deployments (e.g., DoorDash, Uber, Netflix) unless present in retrieved primary evidence.\n"
-            "- TOKEN PRICING MATH DIRECTIVE: Perform exact token pricing math: cost = (tokens / 1,000,000) * price_per_million. For 5k tokens @ $2.50/M input, cost is $0.0125 (NOT $0.625).\n"
+            "- ARCHITECTURAL SPECIFICATIONS: If exact architectural parameters (such as parameter counts, layer counts, or quantization formats) are not officially disclosed by the vendor in retrieved primary evidence, state 'Architectural details not publicly disclosed by vendor'. Do NOT invent parameter numbers.\n"
+            "- ENTITY LINEUP IMMUTABILITY: Compare the canonical entities explicitly requested in the query (e.g. OpenAI GPT Series, Anthropic Claude Series, Google Gemini Series, or exact resolved entities). Do NOT invent fictional entity names or cite unrequested legacy models unless specified.\n"
+            "- COMPREHENSIVE METRIC SYNTHESIS: Thoroughly synthesize ALL empirical metrics present in the evidence block (pricing per 1M tokens, context window sizes, MMLU, GPQA, HumanEval, SWE-bench, latency in ms). Only state 'COMPARISON = UNDETERMINED' if the evidence block truly contains zero data for that dimension.\n"
+            "- CITATION ACCURACY: Only append a source tag `[src-id]` to a sentence if that specific source chunk `[src-id]` in the evidence block contains the facts or figures stated in that sentence. Do NOT cite a source for an entity it does not discuss.\n"
+            "- TOKEN PRICING MATH DIRECTIVE: Perform exact token pricing math: cost = (tokens / 1,000,000) * price_per_million. For 5k tokens @ $2.50/M input, cost is $0.0125.\n"
             "Budget approximately 160-220 words per chapter so that ALL chapters 1 through 9 are completely synthesized sequentially without running out of tokens."
         )
 
@@ -328,7 +330,7 @@ class DeepResearchAgent:
                 f"- Crossover Empirical Threshold: {crossover_calc['crossover_status']}\n"
                 f"- Economic Model Data: Fixed Costs: RAG = ${crossover_calc['rag_fixed_cost_usd']}/mo vs FT = ${crossover_calc['ft_fixed_cost_usd']}/setup; Marginal Costs: RAG = ${crossover_calc['rag_marginal_cost_per_query_usd']:.6f}/req (2,000 context tokens) vs FT = ${crossover_calc['ft_marginal_cost_per_query_usd']:.6f}/req (200 prompt tokens). Break-even crossover occurs at Q* = {crossover_calc['sensitivity_example_q_star']:,} queries/month.\n"
                 f"- Hardware Latency Profiles (AWS A10G / H100 PCIe with vLLM): RAG incurs +70-180ms total retrieval overhead (Embedding bge-large: 12ms p50 / 22ms p95; HNSW ANN search: 8ms p50 / 14ms p95; Cross-encoder rerank bge-reranker-large: 45ms p50 / 75ms p95; Context prefill TTFT: 65ms p50 / 110ms p95). Fine-Tuning (merged LoRA weights) has 0ms retrieval overhead and 18ms p50 TTFT (3.5x-7x lower TTFT), satisfying sub-100ms SLAs.\n"
-                f"- Empirical Accuracy Benchmarks: RAG achieves 44.5% EM on Natural Questions, 56.8% EM on TriviaQA, 89.5% factuality on FEVER [Lewis et al. 2020]. Fine-tuning (LoRA) achieves 88.9 on GLUE with 0.1% trainable params and >95% schema compliance [Hu et al. 2021]. Hybrid RAFT achieves 74.3% on PubMedQA and 63.8% on HotpotQA, outperforming standalone RAG by 14-35% [Zhang et al. 2024].\n"
+                f"- Empirical Accuracy Benchmarks: Performance, accuracy, and schema adherence depend strictly on retrieved primary evidence for the target entities.\n"
             )
 
         user_prompt = (
@@ -501,7 +503,7 @@ class DeepResearchAgent:
         temp_ws = ResearchWorkspace(id=workspace_id, topic=clean_topic, plan=plan, claims=accepted_claims, conflicts=conflicts_list)
         epistemic_report = epistemic_auditor.audit(temp_ws, bound_claims_list, research_id=research_id)
 
-        epistemic_decision = self.decision_engine.build_epistemic_decision(resolution, accepted_claims, accepted_sources)
+        epistemic_decision = self.decision_engine.build_epistemic_decision(resolution, accepted_claims, accepted_sources, verification_report=post_synthesis_report)
         rendered_matrix = self.decision_engine.render_decision_markdown(epistemic_decision)
         traceability_ledger_md = post_synthesis_verifier.render_traceability_ledger_markdown(post_synthesis_report)
         
@@ -522,7 +524,14 @@ class DeepResearchAgent:
                 last_content = last_content.split("## Empirical Decision Matrix")[0].strip()
             report_sections[-1].content = last_content + "\n\n" + rendered_matrix + "\n" + audit_summary_md + "\n" + traceability_ledger_md
 
-        final_status = "COMPLETED" if (is_sound and "VALID" in epistemic_report.verdict) else "NEEDS_EXPANSION"
+        is_sound_verification = (
+            len(unsatisfied_final) == 0 and
+            post_synthesis_report.rejected_claims_count == 0 and
+            post_synthesis_report.math_error_count == 0 and
+            post_synthesis_report.verification_rate_pct >= 80.0 and
+            not epistemic_decision.recommendations_blocked
+        )
+        final_status = "COMPLETED" if is_sound_verification else "NEEDS_EXPANSION"
 
         t_total = time.time() - t_start
         print(f"\n[STEP 6/6: KNOWLEDGE GRAPH, VERIFICATION & SCORING] ({time.time() - t_phase6:.2f}s)")

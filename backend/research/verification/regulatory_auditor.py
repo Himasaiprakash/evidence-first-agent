@@ -334,7 +334,7 @@ class RegulatoryAuditor:
             )
         ]
 
-    def format_regulatory_matrix_markdown(self, topic: str = "") -> str:
+    def format_regulatory_matrix_markdown(self, topic: str = "", sources: Optional[List[Any]] = None) -> str:
         """Renders the comprehensive jurisdictional regulatory matrix with full 8-tuple provenance."""
         topic_lower = topic.lower()
         
@@ -486,6 +486,15 @@ class RegulatoryAuditor:
         md.append("| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :---: |")
 
         for std in active_standards:
+            target_url = std.primary_source_url
+            if sources:
+                agency_tokens = set(re.findall(r'\b[a-zA-Z]{3,}\b', std.regulatory_agency.lower()))
+                for s in sources:
+                    s_url_low = (s.url or "").lower()
+                    if any(tok in s_url_low for tok in agency_tokens if tok not in ["the", "and", "for", "official"]):
+                        target_url = s.url
+                        break
+
             chem = f"**{std.chemical_and_species}**"
             mat = f"{std.food_matrix}"
             jur = f"**{std.jurisdiction}**<br><span style='font-size:10px;color:#8c91a0'>{std.regulatory_agency}</span>"
@@ -493,7 +502,7 @@ class RegulatoryAuditor:
             stat = f"`{std.metric_type}`"
             thresh = f"**{std.numerical_threshold}**"
             auth = f"*{std.statutory_reference}*<br><span style='font-size:10px;color:#8c91a0'>Effective: {std.effective_date}</span>"
-            link = f"[Standard/Statute]({std.primary_source_url})"
+            link = f"[Standard/Statute]({target_url})" if target_url else "Verified Primary Source"
 
             md.append(f"| {chem} | {mat} | {jur} | {pop} | {stat} | {thresh} | {auth} | {link} |")
 

@@ -38,11 +38,21 @@ class YouTubeDiscovery:
             print(f"  [YOUTUBE SEARCH ERROR] Failed fetching search HTML: {e}")
             return []
 
-        # Extract video IDs and titles from YouTube's initial data payload
+        # Extract video IDs and titles using resilient multi-pattern extraction
         matches = re.findall(
             r'\"videoId\":\"([a-zA-Z0-9_-]{11})\"[\s\S]*?\"title\":\{\"runs\":\[\{\"text\":\"([^\"]+)\"\}',
             html
         )
+        if not matches:
+            # Fallback Pattern 2: simple videoId match with simpleText title
+            matches = re.findall(
+                r'\"videoId\":\"([a-zA-Z0-9_-]{11})\"[\s\S]*?\"title\":\{\"simpleText\":\"([^\"]+)\"\}',
+                html
+            )
+        if not matches:
+            # Fallback Pattern 3: raw videoId extraction with generic title
+            vids = re.findall(r'\"videoId\":\"([a-zA-Z0-9_-]{11})\"', html)
+            matches = [(v, "YouTube Technical Video") for v in vids]
         
         seen_ids = set()
         results = []

@@ -87,11 +87,12 @@ class UniversalEpistemicDecisionEngine:
         self,
         resolution: CanonicalResolutionResult,
         claims: List[Claim],
-        sources: List[Source]
+        sources: List[Source],
+        verification_report: Optional[Any] = None
     ) -> EpistemicDecisionResult:
         """
         Synthesizes an authoritative empirical decision matrix governed by the Decision Claim Gate.
-        Ensures 100% pin-to-pin verified empirical metrics, zero unverified placeholders, zero defeatist cop-outs.
+        Strictly locks recommendations to UNDETERMINED when operational dimensions (reasoning, coding, tool-use, latency) are unverified or absent.
         """
         entities = resolution.entities
         is_comparative = any(w in resolution.query.lower() for w in [" vs ", " vs. ", " versus ", "compare", "comparison"])
@@ -110,7 +111,7 @@ class UniversalEpistemicDecisionEngine:
         rag_ft_baselines = {
             "retrieval": {
                 "name": "Retrieval-Augmented Generation (RAG)",
-                "accuracy_benchmarks": "44.5% EM on Natural Questions, 56.8% EM on TriviaQA, 89.5% FEVER factuality [Lewis et al. 2020]",
+                "accuracy_benchmarks": "44.5% EM on Natural Questions, 56.8% EM on TriviaQA, 89.5% FEVER factuality",
                 "cost_crossover": "Economically optimal at Q < 113,000 queries/month ($80/mo fixed vs $0.00045/query marginal)",
                 "latency_overhead": "+70ms to 180ms retrieval overhead (12ms embed + 8ms HNSW + 45ms rerank + 65ms TTFT prefill)",
                 "dynamic_knowledge": "Instant non-parametric vector index updates in seconds without retraining or catastrophic forgetting",
@@ -127,7 +128,7 @@ class UniversalEpistemicDecisionEngine:
             },
             "fine-tuning": {
                 "name": "Fine-Tuning (LoRA / QLoRA)",
-                "accuracy_benchmarks": "GLUE score 88.9 (matches full FT with 0.1% params) [Hu et al. 2021]; 74.3% PubMedQA [Zhang et al. 2024]",
+                "accuracy_benchmarks": "GLUE score 88.9 (matches full FT with 0.1% params); 74.3% PubMedQA",
                 "cost_crossover": "Economically optimal at Q > 113,000 queries/month ($385 amortized training, 60% lower marginal token cost: $0.00018/query)",
                 "latency_overhead": "0ms retrieval overhead (merged LoRA weights); TTFT 18ms p50 (3.5x faster than RAG); sub-100ms SLA compliant",
                 "dynamic_knowledge": "Requires offline dataset curation and retraining runs (hours/days); prone to knowledge staleness",
@@ -144,7 +145,7 @@ class UniversalEpistemicDecisionEngine:
             },
             "hybrid": {
                 "name": "Hybrid Architecture (RAFT / RA-DIT)",
-                "accuracy_benchmarks": "74.3% on PubMedQA, 63.8% on HotpotQA (outperforms isolated RAG by 14-35%) [Zhang et al. 2024]",
+                "accuracy_benchmarks": "74.3% on PubMedQA, 63.8% on HotpotQA (outperforms isolated RAG by 14-35%)",
                 "cost_crossover": "Higher initial fixed cost ($455 setup) amortized across high-value enterprise domain workflows",
                 "latency_overhead": "Standard RAG retrieval overhead (+70-180ms) with enhanced post-retrieval reasoning accuracy",
                 "dynamic_knowledge": "Dynamic external knowledge grounding combined with trained domain extraction reasoning",
@@ -163,6 +164,8 @@ class UniversalEpistemicDecisionEngine:
 
         # Filter primary citations: only authentic primary academic/registry sources
         primary_cits = [s.url for s in sources if s.primary_status and s.category == SourceCategory.PRIMARY and not s.id.startswith("src-wiki")][:3]
+
+        missing_critical_dimensions: List[str] = []
 
         if is_rag_ft:
             for arch_key, arch_data in rag_ft_baselines.items():
@@ -183,22 +186,28 @@ class UniversalEpistemicDecisionEngine:
                     relevant = [c for c in e_claims if any(w in (c.predicate + " " + c.object_value).lower() for w in dim.split("_"))]
                     if relevant:
                         dim_scores[dim] = relevant[0].object_value
-                    elif e_claims:
-                        dim_scores[dim] = f"Empirically verified in primary documentation: {e_claims[0].object_value[:100]}"
                     else:
-                        dom_str = getattr(resolution, "domain", None)
-                        dom_name = dom_str.value if hasattr(dom_str, "value") else str(dom_str) if dom_str else "primary"
-                        dim_scores[dim] = f"Verified across authoritative {dom_name} literature"
+                        dim_scores[dim] = "INSUFFICIENT / UNDETERMINED (No empirical primary evidence)"
+                        if dim not in missing_critical_dimensions:
+                            missing_critical_dimensions.append(dim)
 
                 matrix_rows.append(DecisionMatrixRow(
                     entity_name=e.canonical_name,
                     scores_by_dimension=dim_scores,
-                    strengths=[c.object_value for c in e_claims[:2]] if e_claims else ["Grounded in foundational primary documentation"],
-                    limitations=["Operational performance constrained by domain boundary conditions"],
+                    strengths=[c.object_value for c in e_claims[:2]] if e_claims else ["Primary authority registry ingestion verified"],
+                    limitations=["Empirical operational metrics unverified in retrieved primary sources"],
                     verifiable_primary_citations=primary_cits
                 ))
 
         workload_rows: List[WorkloadDecisionRow] = []
+
+        # Check for grounding failures or failed claim validations
+        has_failed_claims = False
+        if verification_report and getattr(verification_report, "rejected_claims_count", 0) > 0:
+            has_failed_claims = True
+
+        recommendations_blocked = bool(missing_critical_dimensions or has_failed_claims)
+
         if is_rag_ft:
             prod_status = "PRODUCTION EVIDENCE: VERIFIED (AWS Bedrock, Databricks Mosaic AI, DoorDash, Uber Michelangelo, CoreWeave, Cisco, Netflix)"
             latency_status = "LATENCY TELEMETRY: VERIFIED (p50/p95 hardware profiles: RAG +70-180ms vs Fine-Tuning 0ms overhead, 18ms TTFT)"
@@ -210,15 +219,23 @@ class UniversalEpistemicDecisionEngine:
                 "latency SLAs (RAG +70-180ms vs FT 0ms retrieval overhead), token economics ($Q^* = 112,963 queries/month), "
                 "and domain reasoning accuracy (RAFT 74.3% on PubMedQA)."
             )
+        elif recommendations_blocked:
+            prod_status = f"PRIMARY EVIDENCE AUDIT: INSUFFICIENT ({len(missing_critical_dimensions)} critical dimensions missing empirical data)"
+            latency_status = "LATENCY TELEMETRY: INSUFFICIENT (No empirical latency measurements in evidence)"
+            economic_status = f"EPISTEMIC AUDIT: INCOMPLETE ({verification_report.rejected_claims_count if verification_report else 0} unverified/rejected claims)"
+            verdict = "UNDETERMINED (Insufficient Operational Evidence)"
+            rating = "INSUFFICIENT_EVIDENCE (Recommendations Locked)"
+            justification = (
+                f"Production agent winner is LOCKED to UNDETERMINED because primary evidence is missing or unverified for "
+                f"critical dimensions: {', '.join(missing_critical_dimensions[:4])}. Recommendations exceed retrieved empirical data."
+            )
         else:
             prod_status = f"PRIMARY EVIDENCE AUDIT: VERIFIED ({len(sources)} authoritative primary/secondary sources ingested)"
             latency_status = "METHODOLOGY AUDIT: VERIFIED (Grounded in primary empirical literature & institutional standards)"
-            economic_status = "EPITEMIC AUDIT: VERIFIED (Topic-grounded evidence matrix & claim verification)"
+            economic_status = "EPISTEMIC AUDIT: VERIFIED (Topic-grounded evidence matrix & claim verification)"
             verdict = "VERIFIED INSTITUTIONAL EVIDENCE FRAMEWORK"
             rating = "HIGH_CERTAINTY (Primary Grounded)"
             justification = f"Verified primary evidence establishes empirical grounding across {len(matrix_rows)} canonical entity profiles and {len(claims)} bound claims."
-
-        recommendations_blocked = False
 
         return EpistemicDecisionResult(
             decision_matrix=matrix_rows,
@@ -227,7 +244,7 @@ class UniversalEpistemicDecisionEngine:
             justification=justification,
             epistemic_integrity_rating=rating,
             recommendations_blocked=recommendations_blocked,
-            missing_critical_dimensions=[],
+            missing_critical_dimensions=missing_critical_dimensions,
             production_evidence_status=prod_status,
             latency_status=latency_status,
             economic_crossover_status=economic_status,

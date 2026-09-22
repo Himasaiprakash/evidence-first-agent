@@ -258,17 +258,13 @@ class InstitutionalCitationDossier:
                     publisher_series=pub_series,
                     publication_date=s.publication_date or "2024",
                     observation_period="Empirical Research Dossier",
-                    url=s.url or "https://doi.org",
+                    url=s.url or "",
                     source_type="Primary Literature / Specification",
                     primary_status=True,
                     verbatim_excerpt=(s.raw_content or "")[:300].replace("\n", " "),
                     table_or_figure_reference="Section: Empirical Findings",
                     confidence_score=0.95
                 ))
-        elif is_ecotox:
-            dossier = self.ecotoxicology_dossier
-        elif is_macro:
-            dossier = self.macro_dossier
         else:
             dossier = []
         

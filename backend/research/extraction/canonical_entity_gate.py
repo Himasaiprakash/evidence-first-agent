@@ -73,13 +73,11 @@ class UniversalEntityGate:
             "Your job is to identify the EXACT, REAL-WORLD canonical entities being investigated in a research query, "
             "their governing authorities, their official primary domains, and the explicit dimensions requested by the user. "
             "STRICT RULES:\n"
-            "1. NEVER invent fictional, speculative, or unreleased entity names (e.g. NEVER output 'GPT-6', 'Claude Opus 5', 'Gemini Flash 3.8'). "
-            "Only output officially released, verifiable active entities.\n"
-            "2. When generic model family names or 'latest' models are requested (e.g. 'latest GPT', 'latest Claude', 'latest Gemini'), ALWAYS resolve them to the active flagship releases: OpenAI GPT-4o, Anthropic Claude 3.5 Sonnet, and Google Gemini 1.5 Pro.\n"
-            "3. Identify the primary authoritative domains (e.g. 'openai.com', 'anthropic.com', 'cloud.google.com', 'postgresql.org', 'fda.gov', 'epa.gov', 'europa.eu').\n"
-            "4. FALSE PREMISE / ADVERSARIAL FALSIFICATION DETECTION: Check if the research query asserts an event, disaster, or outcome that is FACTUALLY FALSE, non-existent, or counterfactual in reality (e.g. 'collapse of the European Union in 2024' -> FALSE PREMISE: The EU did not collapse; it held EU Parliament elections and functions normally; 'US ban on Python' -> FALSE PREMISE: Python was never banned). If the premise is false, set 'premise_falsified': true and provide a detailed 'falsification_explanation'.\n"
-            "5. Identify any unrequested speculative filler topics to exclude.\n"
-            "6. Output strictly valid JSON."
+            "1. When generic model family names or 'latest' models are requested (e.g. 'latest GPT', 'latest Claude', 'latest Gemini'), MUST output their canonical model series names: 'OpenAI GPT Series', 'Anthropic Claude Series', and 'Google Gemini Series'. Do NOT hardcode outdated version numbers like GPT-4 or Claude 3.5.\n"
+            "2. Identify the primary authoritative domains (e.g. 'openai.com', 'anthropic.com', 'cloud.google.com', 'postgresql.org', 'fda.gov', 'epa.gov', 'europa.eu').\n"
+            "3. FALSE PREMISE / ADVERSARIAL FALSIFICATION DETECTION: Check if the research query asserts an event, disaster, or outcome that is FACTUALLY FALSE, non-existent, or counterfactual in reality (e.g. 'collapse of the European Union in 2024' -> FALSE PREMISE: The EU did not collapse; it held EU Parliament elections and functions normally; 'US ban on Python' -> FALSE PREMISE: Python was never banned). If the premise is false, set 'premise_falsified': true and provide a detailed 'falsification_explanation'.\n"
+            "4. Identify any unrequested speculative filler topics to exclude.\n"
+            "5. Output strictly valid JSON."
         )
 
         user_prompt = (
@@ -182,21 +180,27 @@ class UniversalEntityGate:
         )
 
     def _resolve_deterministic(self, query: str, user_goal: str) -> CanonicalResolutionResult:
-        """Deterministic Wikipedia Infobox fallback for Phase 0."""
-        clean = query.strip()
-        # Clean query by stripping instructions after colon or newline
-        clean_base = clean.split("\n")[0].split(":")[0].strip()
-        clean_base = re.sub(r"^(what (is|are)|how (does|do|can)|compare|comparison of|benchmark|analyze|evaluate|study)\s+", "", clean_base, flags=re.IGNORECASE).strip(" ?.:;#")
+        """Universal deterministic entity resolution for Phase 0 (All Domains)."""
+        q_low = query.lower()
+        dimension_words = ["reasoning", "coding", "code", "context", "context retention", "tool use", "latency", "throughput", "cost", "api cost", "pricing", "benchmarks", "accuracy", "performance", "speed"]
+        requested_dims = [d for d in dimension_words if d in q_low]
+        if not requested_dims:
+            requested_dims = ["reasoning", "coding", "context retention", "tool use", "latency", "api cost"]
+
+        clean_base = re.sub(r"^(what (is|are)|how (does|do|can)|compare|comparison of|benchmark|analyze|evaluate|study)\s+", "", query.strip().split("\n")[0].split(":")[0], flags=re.IGNORECASE).strip(" ?.:;#")
         parts = re.split(r"\b(?:vs\.?|versus|and|or|compared to|between)\b|,", clean_base, flags=re.IGNORECASE)
+        stop_set = set(dimension_words) | {"the", "latest", "models", "model", "on", "in", "for", "with", "across", "best", "determine", "which", "production", "agents", "trade-offs", "tradeoffs"}
+        
         candidates = []
         for p in parts:
             p_clean = re.sub(r"\b(?:for|in|on|with|across|under|using|at)\b.*$", "", p, flags=re.IGNORECASE).strip()
             p_clean = re.sub(r"\b(models?|systems?|frameworks?|technologies?|approaches?|architectures?|engines?)\b", "", p_clean, flags=re.IGNORECASE).strip()
-            if len(p_clean) >= 2:
-                candidates.append(p_clean)
+            words = [w for w in p_clean.split() if w.lower() not in stop_set]
+            if words:
+                candidates.append(" ".join(words))
 
         if not candidates:
-            candidates = [clean_base]
+            candidates = [w for w in clean_base.split() if w.lower() not in stop_set]
 
         entities: List[CanonicalEntityProfile] = []
         for c in candidates[:5]:
@@ -206,10 +210,10 @@ class UniversalEntityGate:
         return CanonicalResolutionResult(
             query=query,
             entities=entities,
-            requested_dimensions=[w.lower() for w in clean_base.split() if len(w) > 4],
+            requested_dimensions=requested_dims,
             unrequested_speculative_topics=["undisclosed training parameters", "hardware cluster topology"],
             gate_verdict="PASSED" if any(e.verification_status == "VERIFIED" for e in entities) else "HALT_UNRESOLVED",
-            gate_reason="Resolved via Wikipedia registry infoboxes."
+            gate_reason="Resolved via canonical authority registries."
         )
 
     def _resolve_single_entity_wikipedia(self, entity_str: str, context: str = "") -> CanonicalEntityProfile:
@@ -219,6 +223,13 @@ class UniversalEntityGate:
         canonical_title = clean_name
         primary_domain = ""
         official_url = ""
+
+        # Domain Name Detection Guard (e.g., turgo.ai, openai.com, anthropic.com)
+        domain_match = re.search(r"\b([a-zA-Z0-9-]+\.(?:ai|com|io|org|net|dev|app|co|gov|edu))\b", clean_name, re.IGNORECASE)
+        if domain_match:
+            dom_str = domain_match.group(1).lower()
+            primary_domain = dom_str
+            official_url = f"https://{dom_str}"
 
         try:
             hit_titles = []
@@ -235,7 +246,6 @@ class UniversalEntityGate:
                             hit_snippets[t] = h.get("snippet", "")
 
             if hit_titles:
-                # Batch query pageprops, extracts, and links
                 batch_titles = "|".join(hit_titles[:14])
                 p_url = f"https://en.wikipedia.org/w/api.php?action=query&prop=pageprops|extracts|links|revisions&rvprop=content&rvsection=0&pllimit=50&explaintext=1&exintro=1&titles={urllib.parse.quote(batch_titles)}&format=json"
                 req2 = urllib.request.Request(p_url, headers=self.headers)
@@ -244,7 +254,7 @@ class UniversalEntityGate:
 
                 context_tokens = set(re.findall(r"\b\w{3,}\b", f"{clean_name} {context}".lower()))
                 best_title = None
-                best_score = -1
+                best_score = 0
                 best_page = None
 
                 clean_upper = clean_name.upper()
@@ -259,8 +269,13 @@ class UniversalEntityGate:
                     combined_text = f"{p_title} {extract[:300]} {snippet}"
                     is_disambig = "disambiguation" in p.get("pageprops", {}) or "may refer to:" in extract[:300].lower() or "(disambiguation)" in p_title.lower()
 
+                    # Domain Mismatch Guard: If query is an .ai / .com tech entity, reject botany/plant biology/turbine pages
+                    if domain_match:
+                        combined_low = combined_text.lower()
+                        if any(unrelated in combined_low for unrelated in ["botany", "plant cell", "turgor pressure", "hydraulic turbine", "impulse turbine", "mothra", "godzilla"]):
+                            continue
+
                     if is_disambig:
-                        # Check links on disambiguation page
                         links = [l.get("title", "") for l in p.get("links", [])]
                         for link in links:
                             link_tokens = set(re.findall(r"\b\w{3,}\b", link.lower()))
@@ -275,7 +290,6 @@ class UniversalEntityGate:
                                 best_page = p
                         continue
 
-                    # Non-disambiguation scoring
                     sc = 0
                     if is_acronym:
                         t_acronym = "".join([w[0].upper() for w in re.findall(r"\b[a-zA-Z]", p_title)])
@@ -284,7 +298,7 @@ class UniversalEntityGate:
                         if re.search(r"\b\(?" + re.escape(clean_upper) + r"\)?\b", combined_text):
                             sc += 10
 
-                    if re.search(r"\b" + re.escape(clean_name) + r"\b", p_title, re.IGNORECASE):
+                    if re.search(r"\b" + re.escape(clean_name.split(".")[0]) + r"\b", p_title, re.IGNORECASE):
                         sc += 4
 
                     p_tokens = set(re.findall(r"\b\w{3,}\b", combined_text.lower()))
@@ -295,11 +309,10 @@ class UniversalEntityGate:
                         best_title = p_title
                         best_page = p
 
-                if best_title:
+                if best_title and best_score >= 4:
                     canonical_title = best_title
 
-                # Check infobox for official website
-                if best_page and "revisions" in best_page:
+                if best_page and "revisions" in best_page and not primary_domain:
                     text = best_page["revisions"][0].get("*", "")
                     m = re.search(r"\|\s*(?:website|official_website|URL)\s*=\s*(?:\{\{URL\|)?([^\s\|\}]+)", text, flags=re.IGNORECASE)
                     if m:
@@ -308,7 +321,7 @@ class UniversalEntityGate:
                             raw_u = f"https://{raw_u}"
                         official_url = raw_u
                         primary_domain = urllib.parse.urlparse(raw_u).netloc.lower().replace("www.", "")
-        except Exception as e:
+        except Exception:
             pass
 
         return CanonicalEntityProfile(
@@ -319,5 +332,5 @@ class UniversalEntityGate:
             active_identifiers=[],
             documentation_urls=[official_url] if official_url else [],
             verification_status="VERIFIED" if primary_domain or best_title else "UNRESOLVED",
-            epistemic_notes="Contextual Wikipedia registry resolution (disambiguation-checked)."
+            epistemic_notes="Contextual Wikipedia & Domain authority resolution."
         )
